@@ -119,7 +119,7 @@ export default function Index() {
           >
             <Icon name="Zap" size={16} className="text-white" />
           </div>
-          <span style={{ fontSize: 20, fontWeight: 900, letterSpacing: "-0.5px" }}>GoRide</span>
+          <span style={{ fontSize: 20, fontWeight: 900, letterSpacing: "-0.5px" }}>Такси с нами</span>
         </div>
         <div className="flex items-center gap-3">
           <button
