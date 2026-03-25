@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 
 const DRIVERS = [
@@ -76,6 +76,41 @@ export default function Index() {
   const [city, setCity] = useState("Москва");
   const [cityOpen, setCityOpen] = useState(false);
   const [citySearch, setCitySearch] = useState("");
+  const [geoLoading, setGeoLoading] = useState(false);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=ru`
+          );
+          const data = await res.json();
+          const detected =
+            data.address?.city ||
+            data.address?.town ||
+            data.address?.village ||
+            data.address?.county;
+          if (detected) {
+            const matched = CITIES.find((c) =>
+              c.toLowerCase().includes(detected.toLowerCase()) ||
+              detected.toLowerCase().includes(c.toLowerCase())
+            );
+            setCity(matched || detected);
+          }
+        } catch {
+          // Оставляем Москву по умолчанию
+        } finally {
+          setGeoLoading(false);
+        }
+      },
+      () => setGeoLoading(false),
+      { timeout: 6000 }
+    );
+  }, []);
 
   return (
     <div
@@ -201,13 +236,18 @@ export default function Index() {
           onClick={() => setCityOpen(true)}
           className="flex items-center gap-1 mb-1 transition-opacity hover:opacity-70"
         >
+          {geoLoading ? (
+            <Icon name="Loader" size={14} style={{ color: "rgba(255,255,255,0.35)", animation: "spin 1s linear infinite" }} />
+          ) : (
+            <Icon name="MapPin" size={13} style={{ color: "rgba(255,255,255,0.35)" }} />
+          )}
           <p
             className="text-sm font-semibold"
             style={{ color: "rgba(255,255,255,0.35)", letterSpacing: "0.15em" }}
           >
-            {city.toUpperCase()}
+            {geoLoading ? "Определяю..." : city.toUpperCase()}
           </p>
-          <Icon name="ChevronDown" size={14} style={{ color: "rgba(255,255,255,0.35)" }} />
+          {!geoLoading && <Icon name="ChevronDown" size={14} style={{ color: "rgba(255,255,255,0.35)" }} />}
         </button>
         <h1 style={{ fontSize: 40, fontWeight: 900, lineHeight: 1, marginBottom: 4 }}>
           Куда{" "}
