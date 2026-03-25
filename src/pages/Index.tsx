@@ -59,6 +59,12 @@ const PAYMENT_METHODS = [
   { id: "sbp", label: "СБП", icon: "Smartphone", saved: false },
 ];
 
+const CITIES = [
+  "Москва", "Санкт-Петербург", "Новосибирск", "Екатеринбург",
+  "Казань", "Нижний Новгород", "Краснодар", "Самара",
+  "Ростов-на-Дону", "Уфа", "Воронеж", "Пермь",
+];
+
 export default function Index() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -67,6 +73,9 @@ export default function Index() {
   const [activeDriver, setActiveDriver] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"order" | "drivers">("order");
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [city, setCity] = useState("Москва");
+  const [cityOpen, setCityOpen] = useState(false);
+  const [citySearch, setCitySearch] = useState("");
 
   return (
     <div
@@ -137,14 +146,69 @@ export default function Index() {
         </div>
       </header>
 
+      {/* City modal */}
+      {cityOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end"
+          style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+          onClick={() => { setCityOpen(false); setCitySearch(""); }}
+        >
+          <div
+            className="w-full rounded-t-3xl p-5 pb-8"
+            style={{ background: "#14141c", border: "1px solid rgba(255,255,255,0.08)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "rgba(255,255,255,0.2)" }} />
+            <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 12 }}>Выберите город</h3>
+            <input
+              autoFocus
+              value={citySearch}
+              onChange={(e) => setCitySearch(e.target.value)}
+              placeholder="Поиск города..."
+              className="w-full rounded-xl outline-none text-sm text-white mb-3"
+              style={{
+                background: "rgba(255,255,255,0.07)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                padding: "10px 14px",
+                color: "#fff",
+              }}
+            />
+            <div className="space-y-1 max-h-64 overflow-y-auto">
+              {CITIES.filter((c) => c.toLowerCase().includes(citySearch.toLowerCase())).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => { setCity(c); setCityOpen(false); setCitySearch(""); }}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition-all"
+                  style={{
+                    background: city === c ? "rgba(168,85,247,0.15)" : "transparent",
+                    border: city === c ? "1px solid rgba(168,85,247,0.4)" : "1px solid transparent",
+                    color: city === c ? "#fff" : "rgba(255,255,255,0.6)",
+                    fontWeight: city === c ? 700 : 400,
+                  }}
+                >
+                  <span>{c}</span>
+                  {city === c && <Icon name="Check" size={14} style={{ color: "#a855f7" }} />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero */}
       <div className="relative z-10 px-6 pt-8 pb-6">
-        <p
-          className="text-sm font-semibold mb-1"
-          style={{ color: "rgba(255,255,255,0.35)", letterSpacing: "0.15em" }}
+        <button
+          onClick={() => setCityOpen(true)}
+          className="flex items-center gap-1 mb-1 transition-opacity hover:opacity-70"
         >
-          МОСКВА
-        </p>
+          <p
+            className="text-sm font-semibold"
+            style={{ color: "rgba(255,255,255,0.35)", letterSpacing: "0.15em" }}
+          >
+            {city.toUpperCase()}
+          </p>
+          <Icon name="ChevronDown" size={14} style={{ color: "rgba(255,255,255,0.35)" }} />
+        </button>
         <h1 style={{ fontSize: 40, fontWeight: 900, lineHeight: 1, marginBottom: 4 }}>
           Куда{" "}
           <span
