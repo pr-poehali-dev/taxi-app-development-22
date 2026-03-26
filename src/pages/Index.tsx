@@ -148,7 +148,7 @@ export default function Index() {
   const [selectedClass, setSelectedClass] = useState("comfort");
   const [selectedPayment, setSelectedPayment] = useState("card1");
   const [activeDriver, setActiveDriver] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"order" | "drivers" | "history">("order");
+  const [activeTab, setActiveTab] = useState<"order" | "drivers" | "history" | "profile">("order");
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [city, setCity] = useState("Москва");
   const [cityOpen, setCityOpen] = useState(false);
@@ -733,6 +733,105 @@ export default function Index() {
           </div>
         )}
 
+        {activeTab === "profile" && (
+          <div className="space-y-4">
+            {/* Avatar & name */}
+            <div
+              className="rounded-2xl p-5 flex flex-col items-center text-center"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+            >
+              <div
+                className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-black mb-3"
+                style={{ background: "linear-gradient(135deg, #f97316, #a855f7)" }}
+              >
+                АВ
+              </div>
+              <p style={{ fontSize: 20, fontWeight: 800 }}>Алексей Волков</p>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>+7 (999) 123-45-67</p>
+              <div className="flex items-center gap-4 mt-4">
+                {[
+                  { label: "Поездок", value: HISTORY.filter(h => h.status === "completed").length },
+                  { label: "Потрачено", value: `${HISTORY.filter(h => h.status === "completed").reduce((s, h) => s + h.price, 0).toLocaleString("ru-RU")} ₽` },
+                  { label: "Рейтинг", value: "5.0 ★" },
+                ].map((stat) => (
+                  <div key={stat.label} className="flex flex-col items-center">
+                    <p style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>{stat.value}</p>
+                    <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Settings sections */}
+            {[
+              {
+                title: "Личные данные",
+                items: [
+                  { icon: "User", label: "Имя и фамилия", value: "Алексей Волков" },
+                  { icon: "Phone", label: "Телефон", value: "+7 (999) 123-45-67" },
+                  { icon: "Mail", label: "Email", value: "alexey@mail.ru" },
+                ],
+              },
+              {
+                title: "Оплата",
+                items: [
+                  { icon: "CreditCard", label: "Карта •••• 4242", value: "Основная" },
+                  { icon: "CreditCard", label: "Карта •••• 8871", value: "" },
+                  { icon: "Plus", label: "Добавить карту", value: "" },
+                ],
+              },
+              {
+                title: "Настройки",
+                items: [
+                  { icon: "Bell", label: "Уведомления", value: "Включены" },
+                  { icon: "MapPin", label: "Город по умолчанию", value: city },
+                  { icon: "Shield", label: "Конфиденциальность", value: "" },
+                ],
+              },
+            ].map((section) => (
+              <div
+                key={section.title}
+                className="rounded-2xl overflow-hidden"
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+              >
+                <p
+                  className="px-4 pt-4 pb-2 text-xs font-semibold uppercase"
+                  style={{ color: "rgba(255,255,255,0.35)", letterSpacing: "0.12em" }}
+                >
+                  {section.title}
+                </p>
+                {section.items.map((item, i) => (
+                  <button
+                    key={item.label}
+                    className="w-full flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/5"
+                    style={{ borderTop: i === 0 ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(255,255,255,0.05)" }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: "rgba(168,85,247,0.12)" }}
+                    >
+                      <Icon name={item.icon as "User" | "Phone" | "Mail" | "CreditCard" | "Plus" | "Bell" | "MapPin" | "Shield"} size={15} style={{ color: "#a855f7" }} />
+                    </div>
+                    <span style={{ fontSize: 13, color: "#fff", flex: 1, textAlign: "left" }}>{item.label}</span>
+                    {item.value && (
+                      <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{item.value}</span>
+                    )}
+                    <Icon name="ChevronRight" size={14} style={{ color: "rgba(255,255,255,0.2)" }} />
+                  </button>
+                ))}
+              </div>
+            ))}
+
+            {/* Logout */}
+            <button
+              className="w-full py-3.5 rounded-2xl font-bold text-sm transition-opacity hover:opacity-80"
+              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", color: "#f87171" }}
+            >
+              Выйти из аккаунта
+            </button>
+          </div>
+        )}
+
         {activeTab === "drivers" && (
           <div className="space-y-4">
             <p
@@ -853,7 +952,7 @@ export default function Index() {
           ].map((item) => (
             <button
               key={item.label}
-              onClick={() => item.tab !== "profile" && setActiveTab(item.tab as "order" | "drivers" | "history")}
+              onClick={() => setActiveTab(item.tab as "order" | "drivers" | "history" | "profile")}
               className="flex flex-col items-center gap-1 transition-all duration-200"
               style={{ color: activeTab === item.tab ? "#f97316" : "rgba(255,255,255,0.28)" }}
             >
