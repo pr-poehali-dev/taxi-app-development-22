@@ -142,7 +142,7 @@ const CITIES = [
   "Ростов-на-Дону", "Уфа", "Воронеж", "Пермь",
 ];
 
-const FAKE_CODE = "1234";
+const SMS_API = "https://functions.poehali.dev/140a35eb-3c36-4740-9035-f4a931ff2ef0";
 
 export default function Index() {
   const [authStep, setAuthStep] = useState<"phone" | "code" | "done">("phone");
@@ -162,30 +162,54 @@ export default function Index() {
     return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9)}`;
   }
 
-  function sendCode() {
+  async function sendCode() {
     const digits = authPhone.replace(/\D/g, "");
     if (digits.length < 11) { setAuthError("Введите корректный номер телефона"); return; }
     setAuthError("");
     setAuthLoading(true);
-    setTimeout(() => { setAuthLoading(false); setAuthStep("code"); }, 1200);
+    try {
+      const res = await fetch(SMS_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send", phone: authPhone }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setAuthError(data.error || "Ошибка отправки SMS"); return; }
+      setAuthStep("code");
+    } catch {
+      setAuthError("Ошибка соединения. Попробуйте ещё раз");
+    } finally {
+      setAuthLoading(false);
+    }
   }
 
-  function handleCodeInput(i: number, val: string) {
+  async function handleCodeInput(i: number, val: string) {
     if (!/^\d?$/.test(val)) return;
     const next = [...authCode];
     next[i] = val;
     setAuthCode(next);
     setAuthError("");
     if (val && i < 3) codeRefs[i + 1].current?.focus();
-    if (next.every(d => d !== "") ) {
-      const entered = next.join("");
-      if (entered === FAKE_CODE) {
-        setAuthLoading(true);
-        setTimeout(() => { setAuthLoading(false); setAuthStep("done"); }, 800);
-      } else {
-        setAuthError("Неверный код. Попробуйте 1234");
-        setAuthCode(["", "", "", ""]);
-        codeRefs[0].current?.focus();
+    if (next.every(d => d !== "")) {
+      setAuthLoading(true);
+      try {
+        const res = await fetch(SMS_API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "verify", phone: authPhone, code: next.join("") }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setAuthError(data.error || "Неверный код");
+          setAuthCode(["", "", "", ""]);
+          codeRefs[0].current?.focus();
+        } else {
+          setAuthStep("done");
+        }
+      } catch {
+        setAuthError("Ошибка соединения");
+      } finally {
+        setAuthLoading(false);
       }
     }
   }

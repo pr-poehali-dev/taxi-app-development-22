@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Send SMS - invalid phone",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "send", "phone": "123"},
+      "expectedStatus": 400
+    }
+  ]
+}
