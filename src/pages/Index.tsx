@@ -77,6 +77,65 @@ const PAYMENT_METHODS = [
   { id: "sbp", label: "СБП", icon: "Smartphone", saved: false },
 ];
 
+const HISTORY = [
+  {
+    id: 1,
+    from: "ул. Тверская, 12",
+    to: "Аэропорт Шереметьево",
+    date: "Сегодня, 09:14",
+    price: 1240,
+    km: 34.2,
+    class: "business",
+    driver: "Александр К.",
+    status: "completed",
+  },
+  {
+    id: 2,
+    from: "Арбат, 24",
+    to: "ТЦ Мега Белая Дача",
+    date: "Вчера, 18:42",
+    price: 480,
+    km: 14.1,
+    class: "comfort",
+    driver: "Ирина Л.",
+    status: "completed",
+  },
+  {
+    id: 3,
+    from: "Проспект Мира, 54",
+    to: "Парк Горького",
+    date: "23 марта, 13:05",
+    price: 310,
+    km: 8.7,
+    class: "economy",
+    driver: "Михаил Р.",
+    status: "completed",
+  },
+  {
+    id: 4,
+    from: "Кутузовский пр-т, 32",
+    to: "Киевский вокзал",
+    date: "21 марта, 07:30",
+    price: 220,
+    km: 4.3,
+    class: "economy",
+    driver: "Михаил Р.",
+    status: "cancelled",
+  },
+];
+
+const CLASS_COLORS: Record<string, string> = {
+  economy: "#22d3ee",
+  comfort: "#a78bfa",
+  business: "#fb923c",
+};
+
+const CLASS_LABELS: Record<string, string> = {
+  economy: "Эконом",
+  comfort: "Комфорт",
+  business: "Бизнес",
+};
+
 const CITIES = [
   "Москва", "Санкт-Петербург", "Новосибирск", "Екатеринбург",
   "Казань", "Нижний Новгород", "Краснодар", "Самара",
@@ -89,7 +148,7 @@ export default function Index() {
   const [selectedClass, setSelectedClass] = useState("comfort");
   const [selectedPayment, setSelectedPayment] = useState("card1");
   const [activeDriver, setActiveDriver] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"order" | "drivers">("order");
+  const [activeTab, setActiveTab] = useState<"order" | "drivers" | "history">("order");
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [city, setCity] = useState("Москва");
   const [cityOpen, setCityOpen] = useState(false);
@@ -601,6 +660,79 @@ export default function Index() {
           </div>
         )}
 
+        {activeTab === "history" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase" style={{ color: "rgba(255,255,255,0.35)", letterSpacing: "0.12em" }}>
+                {HISTORY.length} поездки
+              </p>
+              <p className="text-xs font-bold" style={{ color: "#a855f7" }}>
+                Итого: {HISTORY.filter(h => h.status === "completed").reduce((s, h) => s + h.price, 0).toLocaleString("ru-RU")} ₽
+              </p>
+            </div>
+            {HISTORY.map((trip) => (
+              <div
+                key={trip.id}
+                className="rounded-2xl p-4"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: `1px solid ${trip.status === "cancelled" ? "rgba(239,68,68,0.2)" : "rgba(255,255,255,0.08)"}`,
+                }}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginBottom: 2 }}>{trip.date}</p>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="px-2 py-0.5 rounded-full font-bold"
+                        style={{ fontSize: 10, background: `${CLASS_COLORS[trip.class]}18`, color: CLASS_COLORS[trip.class] }}
+                      >
+                        {CLASS_LABELS[trip.class]}
+                      </span>
+                      {trip.status === "cancelled" && (
+                        <span className="px-2 py-0.5 rounded-full font-bold" style={{ fontSize: 10, background: "rgba(239,68,68,0.15)", color: "#f87171" }}>
+                          Отменён
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p style={{ fontSize: 20, fontWeight: 900, color: trip.status === "cancelled" ? "rgba(255,255,255,0.3)" : "#fff", textDecoration: trip.status === "cancelled" ? "line-through" : "none" }}>
+                      {trip.price.toLocaleString("ru-RU")} ₽
+                    </p>
+                    <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{trip.km} км</p>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#22d3ee" }} />
+                    <p className="text-xs truncate" style={{ color: "rgba(255,255,255,0.6)" }}>{trip.from}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 flex-shrink-0 rotate-45" style={{ background: "#f97316" }} />
+                    <p className="text-xs truncate" style={{ color: "rgba(255,255,255,0.6)" }}>{trip.to}</p>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 flex items-center justify-between" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>
+                    Водитель: <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{trip.driver}</span>
+                  </p>
+                  <button
+                    style={{ fontSize: 11, color: "#a855f7", fontWeight: 600 }}
+                    onClick={() => {
+                      setFrom(trip.from);
+                      setTo(trip.to);
+                      setActiveTab("order");
+                    }}
+                  >
+                    Повторить →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {activeTab === "drivers" && (
           <div className="space-y-4">
             <p
@@ -714,17 +846,18 @@ export default function Index() {
       >
         <div className="flex items-center justify-around py-3 px-6">
           {[
-            { icon: "MapPin", label: "Заказ", active: true },
-            { icon: "Clock", label: "История", active: false },
-            { icon: "Wallet", label: "Кошелёк", active: false },
-            { icon: "User", label: "Профиль", active: false },
+            { icon: "MapPin", label: "Заказ", tab: "order" },
+            { icon: "Clock", label: "История", tab: "history" },
+            { icon: "Users", label: "Водители", tab: "drivers" },
+            { icon: "User", label: "Профиль", tab: "profile" },
           ].map((item) => (
             <button
               key={item.label}
+              onClick={() => item.tab !== "profile" && setActiveTab(item.tab as "order" | "drivers" | "history")}
               className="flex flex-col items-center gap-1 transition-all duration-200"
-              style={{ color: item.active ? "#f97316" : "rgba(255,255,255,0.28)" }}
+              style={{ color: activeTab === item.tab ? "#f97316" : "rgba(255,255,255,0.28)" }}
             >
-              <Icon name={item.icon as "MapPin" | "Clock" | "Wallet" | "User"} size={20} />
+              <Icon name={item.icon as "MapPin" | "Clock" | "Users" | "User"} size={20} />
               <span style={{ fontSize: 10, fontWeight: 600 }}>{item.label}</span>
             </button>
           ))}
