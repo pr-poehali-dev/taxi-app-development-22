@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
 
 const DRIVERS = [
@@ -142,7 +142,54 @@ const CITIES = [
   "Ростов-на-Дону", "Уфа", "Воронеж", "Пермь",
 ];
 
+const FAKE_CODE = "1234";
+
 export default function Index() {
+  const [authStep, setAuthStep] = useState<"phone" | "code" | "done">("phone");
+  const [authPhone, setAuthPhone] = useState("");
+  const [authCode, setAuthCode] = useState(["", "", "", ""]);
+  const [authError, setAuthError] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const codeRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+
+  function formatPhone(val: string) {
+    const digits = val.replace(/\D/g, "").slice(0, 11);
+    if (digits.length === 0) return "";
+    if (digits.length <= 1) return "+7";
+    if (digits.length <= 4) return `+7 (${digits.slice(1)}`;
+    if (digits.length <= 7) return `+7 (${digits.slice(1, 4)}) ${digits.slice(4)}`;
+    if (digits.length <= 9) return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+    return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9)}`;
+  }
+
+  function sendCode() {
+    const digits = authPhone.replace(/\D/g, "");
+    if (digits.length < 11) { setAuthError("Введите корректный номер телефона"); return; }
+    setAuthError("");
+    setAuthLoading(true);
+    setTimeout(() => { setAuthLoading(false); setAuthStep("code"); }, 1200);
+  }
+
+  function handleCodeInput(i: number, val: string) {
+    if (!/^\d?$/.test(val)) return;
+    const next = [...authCode];
+    next[i] = val;
+    setAuthCode(next);
+    setAuthError("");
+    if (val && i < 3) codeRefs[i + 1].current?.focus();
+    if (next.every(d => d !== "") ) {
+      const entered = next.join("");
+      if (entered === FAKE_CODE) {
+        setAuthLoading(true);
+        setTimeout(() => { setAuthLoading(false); setAuthStep("done"); }, 800);
+      } else {
+        setAuthError("Неверный код. Попробуйте 1234");
+        setAuthCode(["", "", "", ""]);
+        codeRefs[0].current?.focus();
+      }
+    }
+  }
+
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [selectedClass, setSelectedClass] = useState("comfort");
@@ -240,6 +287,111 @@ export default function Index() {
       { timeout: 6000 }
     );
   }, []);
+
+  if (authStep !== "done") {
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center px-6"
+        style={{ background: "#0a0a0f", fontFamily: "'Golos Text', sans-serif" }}
+      >
+        {/* BG ambient */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute rounded-full" style={{ top: "-20%", left: "-10%", width: 500, height: 500, background: "#7c3aed", opacity: 0.15, filter: "blur(120px)" }} />
+          <div className="absolute rounded-full" style={{ bottom: "-10%", right: "-5%", width: 400, height: 400, background: "#f97316", opacity: 0.12, filter: "blur(120px)" }} />
+        </div>
+
+        <div className="relative z-10 w-full max-w-sm">
+          {/* Logo */}
+          <div className="flex flex-col items-center mb-10">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: "linear-gradient(135deg, #f97316, #7c3aed)" }}>
+              <Icon name="Zap" size={28} className="text-white" />
+            </div>
+            <h1 style={{ fontSize: 28, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px" }}>Такси с нами</h1>
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginTop: 4 }}>
+              {authStep === "phone" ? "Введите номер для входа" : "Введите код из SMS"}
+            </p>
+          </div>
+
+          {authStep === "phone" && (
+            <div className="space-y-3">
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                  <Icon name="Phone" size={16} style={{ color: "rgba(255,255,255,0.35)" }} />
+                </div>
+                <input
+                  value={authPhone}
+                  onChange={(e) => { setAuthPhone(formatPhone(e.target.value)); setAuthError(""); }}
+                  onKeyDown={(e) => e.key === "Enter" && sendCode()}
+                  placeholder="+7 (___) ___-__-__"
+                  className="w-full rounded-2xl outline-none text-white text-base"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", padding: "16px 16px 16px 44px", color: "#fff", fontSize: 16 }}
+                />
+              </div>
+              {authError && <p style={{ fontSize: 12, color: "#f87171", textAlign: "center" }}>{authError}</p>}
+              <button
+                onClick={sendCode}
+                disabled={authLoading}
+                className="w-full py-4 rounded-2xl font-black text-white text-base active:scale-95 transition-transform"
+                style={{ background: authLoading ? "rgba(168,85,247,0.4)" : "linear-gradient(135deg, #f97316, #a855f7)", opacity: authLoading ? 0.7 : 1 }}
+              >
+                {authLoading ? "Отправляем..." : "Получить код"}
+              </button>
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", textAlign: "center", marginTop: 8 }}>
+                Нажимая кнопку, вы соглашаетесь с условиями использования
+              </p>
+            </div>
+          )}
+
+          {authStep === "code" && (
+            <div className="space-y-4">
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", textAlign: "center" }}>
+                Код отправлен на {authPhone}
+              </p>
+              <div className="flex gap-3 justify-center">
+                {authCode.map((digit, i) => (
+                  <input
+                    key={i}
+                    ref={codeRefs[i]}
+                    value={digit}
+                    onChange={(e) => handleCodeInput(i, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Backspace" && !digit && i > 0) codeRefs[i - 1].current?.focus();
+                    }}
+                    maxLength={1}
+                    className="w-14 h-14 text-center text-2xl font-black rounded-2xl outline-none text-white"
+                    style={{
+                      background: digit ? "rgba(168,85,247,0.15)" : "rgba(255,255,255,0.06)",
+                      border: authError ? "1px solid rgba(248,113,113,0.6)" : digit ? "1px solid rgba(168,85,247,0.5)" : "1px solid rgba(255,255,255,0.1)",
+                      color: "#fff",
+                    }}
+                  />
+                ))}
+              </div>
+              {authError && <p style={{ fontSize: 12, color: "#f87171", textAlign: "center" }}>{authError}</p>}
+              {authLoading && (
+                <div className="flex items-center justify-center gap-2" style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>
+                  <Icon name="Loader" size={14} style={{ animation: "spin 1s linear infinite" }} />
+                  Проверяем код...
+                </div>
+              )}
+              <button
+                onClick={() => { setAuthStep("phone"); setAuthCode(["","","",""]); setAuthError(""); }}
+                style={{ fontSize: 12, color: "#a855f7", display: "block", margin: "0 auto", fontWeight: 600 }}
+              >
+                Изменить номер
+              </button>
+              <button
+                onClick={() => { setAuthCode(["","","",""]); sendCode(); }}
+                style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", display: "block", margin: "0 auto" }}
+              >
+                Отправить код повторно
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
