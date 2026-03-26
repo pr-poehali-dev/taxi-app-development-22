@@ -94,6 +94,9 @@ export default function Index() {
             data.address?.town ||
             data.address?.village ||
             data.address?.county;
+          const road = data.address?.road || data.address?.pedestrian || data.address?.suburb || "";
+          const house = data.address?.house_number ? `, ${data.address.house_number}` : "";
+          if (road) setFrom(road + house);
           if (detected) {
             const matched = CITIES.find((c) =>
               c.toLowerCase().includes(detected.toLowerCase()) ||
