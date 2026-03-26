@@ -155,6 +155,20 @@ export default function Index() {
   const [citySearch, setCitySearch] = useState("");
   const [geoLoading, setGeoLoading] = useState(false);
 
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [profileName, setProfileName] = useState("Алексей Волков");
+  const [profilePhone, setProfilePhone] = useState("+7 (999) 123-45-67");
+  const [profileEmail, setProfileEmail] = useState("alexey@mail.ru");
+  const [profileSaved, setProfileSaved] = useState(false);
+
+  const profileInitials = profileName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+
+  function saveProfile() {
+    setProfileEditing(false);
+    setProfileSaved(true);
+    setTimeout(() => setProfileSaved(false), 2500);
+  }
+
   const [fromSuggestions, setFromSuggestions] = useState<{display_name: string; lat: string; lon: string}[]>([]);
   const [toSuggestions, setToSuggestions] = useState<{display_name: string; lat: string; lon: string}[]>([]);
   const [fromCoords, setFromCoords] = useState<{lat: number; lon: number} | null>(null);
@@ -735,7 +749,18 @@ export default function Index() {
 
         {activeTab === "profile" && (
           <div className="space-y-4">
-            {/* Avatar & name */}
+            {/* Success toast */}
+            {profileSaved && (
+              <div
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl font-semibold text-sm"
+                style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", color: "#4ade80" }}
+              >
+                <Icon name="CheckCircle" size={16} />
+                Данные сохранены
+              </div>
+            )}
+
+            {/* Avatar & stats */}
             <div
               className="rounded-2xl p-5 flex flex-col items-center text-center"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
@@ -744,11 +769,11 @@ export default function Index() {
                 className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-black mb-3"
                 style={{ background: "linear-gradient(135deg, #f97316, #a855f7)" }}
               >
-                АВ
+                {profileInitials}
               </div>
-              <p style={{ fontSize: 20, fontWeight: 800 }}>Алексей Волков</p>
-              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>+7 (999) 123-45-67</p>
-              <div className="flex items-center gap-4 mt-4">
+              <p style={{ fontSize: 20, fontWeight: 800 }}>{profileName}</p>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{profilePhone}</p>
+              <div className="flex items-center gap-6 mt-4">
                 {[
                   { label: "Поездок", value: HISTORY.filter(h => h.status === "completed").length },
                   { label: "Потрачено", value: `${HISTORY.filter(h => h.status === "completed").reduce((s, h) => s + h.price, 0).toLocaleString("ru-RU")} ₽` },
@@ -762,65 +787,99 @@ export default function Index() {
               </div>
             </div>
 
-            {/* Settings sections */}
-            {[
-              {
-                title: "Личные данные",
-                items: [
-                  { icon: "User", label: "Имя и фамилия", value: "Алексей Волков" },
-                  { icon: "Phone", label: "Телефон", value: "+7 (999) 123-45-67" },
-                  { icon: "Mail", label: "Email", value: "alexey@mail.ru" },
-                ],
-              },
-              {
-                title: "Оплата",
-                items: [
-                  { icon: "CreditCard", label: "Карта •••• 4242", value: "Основная" },
-                  { icon: "CreditCard", label: "Карта •••• 8871", value: "" },
-                  { icon: "Plus", label: "Добавить карту", value: "" },
-                ],
-              },
-              {
-                title: "Настройки",
-                items: [
-                  { icon: "Bell", label: "Уведомления", value: "Включены" },
-                  { icon: "MapPin", label: "Город по умолчанию", value: city },
-                  { icon: "Shield", label: "Конфиденциальность", value: "" },
-                ],
-              },
-            ].map((section) => (
-              <div
-                key={section.title}
-                className="rounded-2xl overflow-hidden"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
-              >
-                <p
-                  className="px-4 pt-4 pb-2 text-xs font-semibold uppercase"
-                  style={{ color: "rgba(255,255,255,0.35)", letterSpacing: "0.12em" }}
-                >
-                  {section.title}
+            {/* Personal data */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+            >
+              <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                <p className="text-xs font-semibold uppercase" style={{ color: "rgba(255,255,255,0.35)", letterSpacing: "0.12em" }}>
+                  Личные данные
                 </p>
-                {section.items.map((item, i) => (
-                  <button
-                    key={item.label}
-                    className="w-full flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/5"
-                    style={{ borderTop: i === 0 ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(255,255,255,0.05)" }}
-                  >
-                    <div
-                      className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: "rgba(168,85,247,0.12)" }}
-                    >
-                      <Icon name={item.icon as "User" | "Phone" | "Mail" | "CreditCard" | "Plus" | "Bell" | "MapPin" | "Shield"} size={15} style={{ color: "#a855f7" }} />
-                    </div>
-                    <span style={{ fontSize: 13, color: "#fff", flex: 1, textAlign: "left" }}>{item.label}</span>
-                    {item.value && (
-                      <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{item.value}</span>
-                    )}
-                    <Icon name="ChevronRight" size={14} style={{ color: "rgba(255,255,255,0.2)" }} />
-                  </button>
-                ))}
+                <button
+                  onClick={() => profileEditing ? saveProfile() : setProfileEditing(true)}
+                  className="flex items-center gap-1 text-xs font-bold transition-colors"
+                  style={{ color: profileEditing ? "#4ade80" : "#a855f7" }}
+                >
+                  <Icon name={profileEditing ? "Check" : "Pencil"} size={12} />
+                  {profileEditing ? "Сохранить" : "Изменить"}
+                </button>
               </div>
-            ))}
+              {[
+                { icon: "User", label: "Имя и фамилия", value: profileName, setter: setProfileName },
+                { icon: "Phone", label: "Телефон", value: profilePhone, setter: setProfilePhone },
+                { icon: "Mail", label: "Email", value: profileEmail, setter: setProfileEmail },
+              ].map((item, i) => (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-3 px-4 py-3"
+                  style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: "rgba(168,85,247,0.12)" }}
+                  >
+                    <Icon name={item.icon as "User" | "Phone" | "Mail"} size={15} style={{ color: "#a855f7" }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 2 }}>{item.label}</p>
+                    {profileEditing ? (
+                      <input
+                        value={item.value}
+                        onChange={(e) => item.setter(e.target.value)}
+                        className="w-full outline-none bg-transparent text-white text-sm font-medium"
+                        style={{
+                          borderBottom: "1px solid rgba(168,85,247,0.5)",
+                          paddingBottom: 2,
+                          color: "#fff",
+                        }}
+                      />
+                    ) : (
+                      <p style={{ fontSize: 13, color: "#fff", fontWeight: 500 }}>{item.value}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {profileEditing && (
+                <div className="px-4 pb-4 pt-2">
+                  <button
+                    onClick={saveProfile}
+                    className="w-full py-2.5 rounded-xl font-bold text-sm text-white transition-opacity active:scale-95"
+                    style={{ background: "linear-gradient(135deg, #f97316, #a855f7)" }}
+                  >
+                    Сохранить изменения
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Payment */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+            >
+              <p className="px-4 pt-4 pb-2 text-xs font-semibold uppercase" style={{ color: "rgba(255,255,255,0.35)", letterSpacing: "0.12em" }}>
+                Оплата
+              </p>
+              {[
+                { icon: "CreditCard", label: "Карта •••• 4242", value: "Основная" },
+                { icon: "CreditCard", label: "Карта •••• 8871", value: "" },
+                { icon: "Plus", label: "Добавить карту", value: "" },
+              ].map((item, i) => (
+                <button
+                  key={item.label}
+                  className="w-full flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/5"
+                  style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+                >
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(168,85,247,0.12)" }}>
+                    <Icon name={item.icon as "CreditCard" | "Plus"} size={15} style={{ color: "#a855f7" }} />
+                  </div>
+                  <span style={{ fontSize: 13, color: "#fff", flex: 1, textAlign: "left" }}>{item.label}</span>
+                  {item.value && <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{item.value}</span>}
+                  <Icon name="ChevronRight" size={14} style={{ color: "rgba(255,255,255,0.2)" }} />
+                </button>
+              ))}
+            </div>
 
             {/* Logout */}
             <button
