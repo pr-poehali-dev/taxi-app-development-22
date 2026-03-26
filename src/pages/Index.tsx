@@ -47,10 +47,28 @@ const DRIVERS = [
 ];
 
 const CLASSES = [
-  { id: "economy", label: "Эконом", icon: "Car", price: "от 199 ₽", color: "#22d3ee" },
-  { id: "comfort", label: "Комфорт", icon: "Car", price: "от 349 ₽", color: "#a78bfa" },
-  { id: "business", label: "Бизнес", icon: "Crown", price: "от 699 ₽", color: "#fb923c" },
+  { id: "economy", label: "Эконом", icon: "Car", price: "от 199 ₽", color: "#22d3ee", base: 199, perKm: 22 },
+  { id: "comfort", label: "Комфорт", icon: "Car", price: "от 349 ₽", color: "#a78bfa", base: 349, perKm: 35 },
+  { id: "business", label: "Бизнес", icon: "Crown", price: "от 699 ₽", color: "#fb923c", base: 699, perKm: 60 },
 ];
+
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 1.4;
+}
+
+async function searchAddress(query: string, city: string) {
+  if (query.length < 3) return [];
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + " " + city)}&format=json&limit=5&accept-language=ru`
+  );
+  return res.json();
+}
 
 const PAYMENT_METHODS = [
   { id: "cash", label: "Наличные", icon: "Banknote", saved: false },
@@ -77,6 +95,41 @@ export default function Index() {
   const [cityOpen, setCityOpen] = useState(false);
   const [citySearch, setCitySearch] = useState("");
   const [geoLoading, setGeoLoading] = useState(false);
+
+  const [fromSuggestions, setFromSuggestions] = useState<{display_name: string; lat: string; lon: string}[]>([]);
+  const [toSuggestions, setToSuggestions] = useState<{display_name: string; lat: string; lon: string}[]>([]);
+  const [fromCoords, setFromCoords] = useState<{lat: number; lon: number} | null>(null);
+  const [toCoords, setToCoords] = useState<{lat: number; lon: number} | null>(null);
+  const [searchTimer, setSearchTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  const distance = fromCoords && toCoords
+    ? getDistance(fromCoords.lat, fromCoords.lon, toCoords.lat, toCoords.lon)
+    : null;
+
+  const currentClass = CLASSES.find((c) => c.id === selectedClass)!;
+  const price = distance ? Math.round(currentClass.base + currentClass.perKm * distance) : null;
+
+  function handleFromChange(val: string) {
+    setFrom(val);
+    setFromCoords(null);
+    if (searchTimer) clearTimeout(searchTimer);
+    const t = setTimeout(async () => {
+      const results = await searchAddress(val, city);
+      setFromSuggestions(results);
+    }, 500);
+    setSearchTimer(t);
+  }
+
+  function handleToChange(val: string) {
+    setTo(val);
+    setToCoords(null);
+    if (searchTimer) clearTimeout(searchTimer);
+    const t = setTimeout(async () => {
+      const results = await searchAddress(val, city);
+      setToSuggestions(results);
+    }, 500);
+    setSearchTimer(t);
+  }
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -318,20 +371,17 @@ export default function Index() {
                 МАРШРУТ
               </h2>
               <div className="space-y-2">
+                {/* From */}
                 <div className="relative">
                   <div
                     className="absolute rounded-full"
-                    style={{
-                      left: 12, top: "50%", transform: "translateY(-50%)",
-                      width: 8, height: 8,
-                      background: "#22d3ee",
-                    }}
+                    style={{ left: 12, top: 16, width: 8, height: 8, background: "#22d3ee" }}
                   />
                   <input
                     value={from}
-                    onChange={(e) => setFrom(e.target.value)}
+                    onChange={(e) => handleFromChange(e.target.value)}
                     placeholder="Откуда"
-                    className="w-full rounded-xl text-sm text-white transition-colors outline-none"
+                    className="w-full rounded-xl text-sm text-white outline-none"
                     style={{
                       background: "rgba(255,255,255,0.05)",
                       border: "1px solid rgba(255,255,255,0.09)",
@@ -339,21 +389,39 @@ export default function Index() {
                       color: "#fff",
                     }}
                   />
+                  {fromSuggestions.length > 0 && (
+                    <div
+                      className="absolute left-0 right-0 top-full mt-1 rounded-xl overflow-hidden z-30"
+                      style={{ background: "#1a1a28", border: "1px solid rgba(255,255,255,0.1)" }}
+                    >
+                      {fromSuggestions.map((s, i) => (
+                        <button
+                          key={i}
+                          className="w-full text-left px-3 py-2.5 text-xs transition-colors hover:bg-white/5"
+                          style={{ color: "rgba(255,255,255,0.75)", borderBottom: i < fromSuggestions.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}
+                          onClick={() => {
+                            setFrom(s.display_name.split(",").slice(0, 2).join(","));
+                            setFromCoords({ lat: parseFloat(s.lat), lon: parseFloat(s.lon) });
+                            setFromSuggestions([]);
+                          }}
+                        >
+                          {s.display_name.split(",").slice(0, 3).join(",")}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+                {/* To */}
                 <div className="relative">
                   <div
                     className="absolute"
-                    style={{
-                      left: 12, top: "50%", transform: "translateY(-50%) rotate(45deg)",
-                      width: 8, height: 8,
-                      background: "#f97316",
-                    }}
+                    style={{ left: 12, top: 16, transform: "rotate(45deg)", width: 8, height: 8, background: "#f97316" }}
                   />
                   <input
                     value={to}
-                    onChange={(e) => setTo(e.target.value)}
+                    onChange={(e) => handleToChange(e.target.value)}
                     placeholder="Куда"
-                    className="w-full rounded-xl text-sm text-white transition-colors outline-none"
+                    className="w-full rounded-xl text-sm text-white outline-none"
                     style={{
                       background: "rgba(255,255,255,0.05)",
                       border: "1px solid rgba(255,255,255,0.09)",
@@ -361,8 +429,50 @@ export default function Index() {
                       color: "#fff",
                     }}
                   />
+                  {toSuggestions.length > 0 && (
+                    <div
+                      className="absolute left-0 right-0 top-full mt-1 rounded-xl overflow-hidden z-30"
+                      style={{ background: "#1a1a28", border: "1px solid rgba(255,255,255,0.1)" }}
+                    >
+                      {toSuggestions.map((s, i) => (
+                        <button
+                          key={i}
+                          className="w-full text-left px-3 py-2.5 text-xs transition-colors hover:bg-white/5"
+                          style={{ color: "rgba(255,255,255,0.75)", borderBottom: i < toSuggestions.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}
+                          onClick={() => {
+                            setTo(s.display_name.split(",").slice(0, 2).join(","));
+                            setToCoords({ lat: parseFloat(s.lat), lon: parseFloat(s.lon) });
+                            setToSuggestions([]);
+                          }}
+                        >
+                          {s.display_name.split(",").slice(0, 3).join(",")}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Price estimate */}
+              {price && distance && (
+                <div
+                  className="mt-3 rounded-xl px-4 py-3 flex items-center justify-between"
+                  style={{ background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.25)" }}
+                >
+                  <div>
+                    <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Примерная стоимость</p>
+                    <p style={{ fontSize: 22, fontWeight: 900, color: "#fff", lineHeight: 1.2 }}>
+                      {price.toLocaleString("ru-RU")} ₽
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Расстояние</p>
+                    <p style={{ fontSize: 16, fontWeight: 700, color: "#a855f7" }}>
+                      {distance.toFixed(1)} км
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Class */}
@@ -399,7 +509,9 @@ export default function Index() {
                         style={{ color: active ? cls.color : undefined }}
                       />
                       <span style={{ fontSize: 11, fontWeight: 700 }}>{cls.label}</span>
-                      <span style={{ fontSize: 10, opacity: 0.55 }}>{cls.price}</span>
+                      <span style={{ fontSize: 10, opacity: 0.55 }}>
+                        {distance ? `${Math.round(cls.base + cls.perKm * distance).toLocaleString("ru-RU")} ₽` : cls.price}
+                      </span>
                     </button>
                   );
                 })}
